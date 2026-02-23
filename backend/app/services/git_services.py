@@ -313,46 +313,67 @@ def create_branch(repo_path: str, team_name: str, leader_name: str) -> str:
 
 def commit_and_push(repo_path, branch_name, commit_message, github_token, repo_url):
     repo = Repo(repo_path)
-    repo.git.add(A=True)
-    full_message = f"[AI-AGENT] {commit_message}"
-    commit = repo.index.commit(full_message)
-
+    
+    # 1. Clean URL and Setup Remote with Auth
     clean_url = repo_url.replace("https://", "").replace("http://", "")
     auth_url = f"https://{github_token}@{clean_url}"
-
+    
     try:
         origin = repo.remote(name='origin')
         origin.set_url(auth_url)
-
-        # ─── PULL BEFORE PUSH (Crucial for sequential fixes) ───
-        try:
-            # Fetch to see if branch exists on remote
-            origin.fetch()
-            if f"origin/{branch_name}" in [ref.name for ref in origin.refs]:
-                repo.git.pull('origin', branch_name)
-                print(f"[GIT] Pulled latest from {branch_name}")
-        except Exception as e:
-            print(f"[GIT] No remote branch to pull yet or pull failed: {e}")
-
-        # ─── THE PUSH ───
-        push_info = origin.push(refspec=f"refs/heads/{branch_name}:refs/heads/{branch_name}")
         
-        # 🚨 CHECK FOR PUSH ERRORS
-        info = push_info[0]
+        # 2. Stage and commit locally
+        repo.git.add(A=True)
+        # Ensure we don't commit if the agent didn't change anything
+        if not repo.is_dirty(untracked_files=True):
+            print("[GIT] No changes detected, skipping push.")
+            return {"success": True, "reason": "No changes", "sha": None}
+
+        # The FixerAgent provides the [AI-AGENT] prefix
+        commit = repo.index.commit(commit_message)
+
+        # 3. Pull/Sync before Pushing
+        try:
+            origin.fetch()
+            remote_branch_exists = any(ref.name == f"origin/{branch_name}" for ref in origin.refs)
+            
+            if remote_branch_exists:
+                # Use rebase with 'ours' strategy to favor the AI's latest local fix
+                repo.git.pull('origin', branch_name, '--rebase', '-X', 'ours')
+                print(f"[GIT] Synced with remote {branch_name}")
+        except Exception as e:
+            print(f"[GIT] Sync skipped or non-critical failure: {e}")
+
+        # 4. The Push
+        push_infos = origin.push(refspec=f"refs/heads/{branch_name}:refs/heads/{branch_name}")
+        
+        info = push_infos[0]
         if info.flags & info.ERROR:
-            error_msg = f"Push failed: {info.summary}"
+            error_msg = f"Push rejected: {info.summary}"
             print(f"[GIT ERROR] {error_msg}")
             return {"success": False, "reason": error_msg}
 
-        print(f"[GIT SUCCESS] Pushed {commit.hexsha[:7]} to {branch_name}")
-        return {"success": True, "branch": branch_name, "sha": commit.hexsha, "commit_count": len(list(repo.iter_commits()))}
+        # 🚨 THE CRITICAL FIX: Hard reset local files to the remote state
+        # This ensures the NEXT iteration of the agent sees the code it just pushed.
+        repo.git.reset('--hard', f'origin/{branch_name}')
+        print(f"[GIT SUCCESS] Pushed {commit.hexsha[:7]} and synced local workspace.")
+
+        return {
+            "success": True, 
+            "branch": branch_name, 
+            "sha": commit.hexsha, 
+            "commit_count": len(list(repo.iter_commits()))
+        }
 
     except Exception as e:
         print(f"[GIT CRITICAL ERROR] {str(e)}")
         return {"success": False, "reason": str(e)}
     finally:
-        origin.set_url(repo_url)
-
+        # Always remove the token from the remote URL for safety
+        try:
+            origin.set_url(repo_url)
+        except:
+            pass
 
 def generate_results_json(
     repo_url: str,
@@ -364,78 +385,57 @@ def generate_results_json(
     start_time: str,
     time_taken: float,
     iterations: int,
+    commit_count: int,
     max_retries: int = 5
 ) -> dict:
-    """
-    Generate results.json — MANDATORY per hackathon spec.
-    Judges check for this file at end of each run.
-
-    Includes all fields required by the dashboard:
-      - Run Summary Card
-      - Score Breakdown Panel
-      - Fixes Applied Table
-      - CI/CD Status Timeline
-    """
-    total_fixes   = len(fixes)
-    total_fixed   = len([f for f in fixes if f.get("status") == "Fixed"])
-    total_failed  = len([f for f in fixes if f.get("status") != "Fixed"])
-
-    # Score calculation per spec
-    base_score         = 100
-    speed_bonus        = 10 if time_taken < 300 else 0   # +10 if under 5 min
-    efficiency_penalty = max(0, (total_fixed - 20) * 2)  # -2 per commit over 20
-    final_score        = base_score + speed_bonus - efficiency_penalty
-
+    total_fixes  = len(fixes)
+    total_fixed  = len([f for f in fixes if f.get("status") == "Fixed"])
+    total_failed = total_fixes - total_fixed
+    # ✅ CORRECT SCORING LOGIC
+    base_score = 100
+    speed_bonus = 10 if time_taken < 300 else 0
+    efficiency_penalty = max(0, (commit_count - 20) * 2)
+    final_score = base_score + speed_bonus - efficiency_penalty
     results = {
-        # Run Summary Card
-        "repository":          repo_url,
-        "branch":              branch_name,
-        "team_name":           team_name,
-        "leader_name":         leader_name,
-        "start_time":          start_time,
-        "end_time":            datetime.utcnow().isoformat(),
-        "time_taken_seconds":  round(time_taken, 2),
+        "repository": repo_url,
+        "branch": branch_name,
+        "team_name": team_name,
+        "leader_name": leader_name,
+        "start_time": start_time,
+        "end_time": datetime.utcnow().isoformat(),
+        "time_taken_seconds": round(time_taken, 2),
         "total_failures_detected": total_fixes,
-        "total_fixes_applied":     total_fixed,
-        "ci_status":           ci_status,   # PASSED / FAILED
-
-        # Score Breakdown Panel (required by dashboard spec)
+        "total_fixes_applied": total_fixed,
+        "ci_status": ci_status,
+        # ✅ SCORE PANEL (IMPORTANT)
         "score_breakdown": {
-            "base_score":         base_score,
-            "speed_bonus":        speed_bonus,
+            "base_score": base_score,
+            "speed_bonus": speed_bonus,
             "efficiency_penalty": efficiency_penalty,
-            "final_score":        final_score,
-            "commit_count":       total_fixed,
-            "under_5_minutes":    time_taken < 300
+            "final_score": final_score,
+            "commit_count": commit_count,
+            "under_5_minutes": time_taken < 300
         },
-
-        # Fixes Applied Table (file, bug_type, line, commit_message, status)
         "fixes": [
             {
-                "file":           f.get("file"),
-                "bug_type":       f.get("bug_type"),
-                "line_number":    f.get("line_number") or f.get("line", 0),
-                "commit_message": f"[AI-AGENT] Fix {f.get('bug_type')} in {f.get('file')} line {f.get('line_number', 0)}",
-                "status":         f.get("status", "Failed")
+                "file": f.get("file"),
+                "bug_type": f.get("bug_type"),
+                "line_number": f.get("line"),
+                "commit_message": f"[AI-AGENT] Fix {f.get('bug_type')} in {f.get('file')} line {f.get('line')}",
+                "status": f.get("status", "Failed")
             }
             for f in fixes
         ],
-
-        # CI/CD Timeline
+        # ✅ ITERATION TRACKING
         "ci_history": {
             "iterations_used": iterations,
-            "max_retries":     max_retries,
-            "final_status":    ci_status
+            "max_retries": max_retries,
+            "final_status": ci_status
         }
     }
-
-    # Save to results/results.json — mandatory per spec
     os.makedirs("results", exist_ok=True)
-    results_path = os.path.join("results", "results.json")
-    with open(results_path, "w") as f:
+    with open("results/results.json", "w") as f:
         json.dump(results, f, indent=2)
-
-    logger.info(f"[RESULTS] results.json saved → score: {final_score}")
     return results
 
 

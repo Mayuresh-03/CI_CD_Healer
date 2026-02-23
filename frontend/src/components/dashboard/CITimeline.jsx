@@ -5,85 +5,127 @@ const CITimeline = () => {
   const events = [
     { s: "FAILED", t: "10:02:14", n: "Initial scan — 6 critical failures", run: "run 1/5", color: "#ff4d6d", active: false },
     { s: "FAILED", t: "10:07:31", n: "Linting & syntax patched — 2 remain", run: "run 2/5", color: "#ff4d6d", active: false },
+    { s: "PASSED", t: "10:11:58", n: "All tests green — pipeline clear ✓", run: "run 3/5", color: "#00ffe1", active: false },
+    { s: "PASSED", t: "10:11:58", n: "All tests green — pipeline clear ✓", run: "run 3/5", color: "#00ffe1", active: false },
+    { s: "FAILED", t: "10:07:31", n: "Linting & syntax patched — 2 remain", run: "run 2/5", color: "#ff4d6d", active: false },
+    { s: "PASSED", t: "10:11:58", n: "All tests green — pipeline clear ✓", run: "run 3/5", color: "#00ffe1", active: false },
     { s: "PASSED", t: "10:11:58", n: "All tests green — pipeline clear ✓", run: "run 3/5", color: "#00ffe1", active: true }
   ];
 
   return (
-    <div className="relative pl-12 py-6">
+    <div className="relative w-full overflow-hidden">
       <style>{`
-        @keyframes scan-line {
-          0% { top: 0%; opacity: 0; }
-          15% { opacity: 1; }
-          85% { opacity: 1; }
-          100% { top: 100%; opacity: 0; }
+        @keyframes scan-horizontal {
+          0% { transform: translateX(-100%); opacity: 0; }
+          20% { opacity: 1; }
+          80% { opacity: 1; }
+          100% { transform: translateX(350%); opacity: 0; }
         }
-        /* The fading mask for the timeline track */
-        .timeline-track-fade {
-          mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
-          -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+
+        /* Increased Scrollbar Size and Visibility */
+        .cyber-scroll::-webkit-scrollbar {
+          height: 10px;
+        }
+        .cyber-scroll::-webkit-scrollbar-track {
+          background: rgba(0, 255, 225, 0.05);
+          border-radius: 10px;
+          margin: 0 20px;
+        }
+        .cyber-scroll::-webkit-scrollbar-thumb {
+          background: linear-gradient(to right, rgba(0, 255, 225, 0.1), rgba(0, 255, 225, 0.3), rgba(0, 255, 225, 0.1));
+          border-radius: 10px;
+          border: 1px solid rgba(0, 255, 225, 0.2);
+        }
+        .cyber-scroll::-webkit-scrollbar-thumb:hover {
+          background: rgba(0, 255, 225, 0.4);
         }
       `}</style>
 
-      {/* 1. Vertical Track with Fading Effect */}
-      <div className="absolute left-[24px] top-0 bottom-0 w-[3px] timeline-track-fade z-0">
-        {/* The Colored Gradient Line */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#ff4d6d] via-[#ff4d6d] to-[#00ffe1]" />
-        
-        {/* Scanning Pulse */}
+      <div className="cyber-scroll overflow-x-auto overflow-y-hidden pt-16 pb-12 px-4 mx-auto max-w-[800px]">
         <div 
-          className="absolute left-0 w-full h-24 bg-gradient-to-b from-transparent via-[#00ffe1] to-transparent z-10"
-          style={{ animation: 'scan-line 3.5s linear infinite' }}
-        />
-      </div>
-      
-      <div className="space-y-14 relative z-10">
-        {events.map((e, i) => (
-          <div key={i} className="relative group">
+          className="relative flex items-start transition-all duration-500" 
+          style={{ width: `${events.length * 220}px` }}
+        >
+          
+          {/* 1. Track & Scan Line Wrapper */}
+          <div className="absolute top-[14px] left-[110px] right-[110px] h-[2px] pointer-events-none">
+            <div className="absolute inset-0 bg-gradient-to-r from-[#ff4d6d] via-[#ff4d6d] to-[#00ffe1] opacity-20" />
             
-            {/* 2. Glowing Status Node */}
-            <div 
-              className="absolute -left-[36px] top-2 w-[28px] h-[28px] rounded-full border-[5px] border-[#000507] z-20 transition-all duration-500"
-              style={{ 
-                backgroundColor: e.color, 
-                boxShadow: e.active 
-                  ? `0 0 25px ${e.color}, 0 0 10px ${e.color}` 
-                  : `0 0 15px ${e.color}40` 
-              }}
-            >
-              {/* Pulsing Aura for Active State */}
-              {e.active && (
-                <div className="absolute inset-[-12px] rounded-full border-2 border-[#00ffe140] animate-ping" />
-              )}
+            {/* End Cap */}
+            <div className="absolute right-0 top-[-8px] bottom-[-8px] w-[3px] bg-[#00ffe1] shadow-[0_0_15px_#00ffe1]" />
+            
+            {/* Scanning Glow */}
+            <div className="absolute inset-0 overflow-hidden">
+                <div 
+                className="absolute top-0 h-full w-[300px] bg-gradient-to-r from-transparent via-[#00ffe170] to-transparent"
+                style={{ 
+                    animation: 'scan-horizontal 4s linear infinite',
+                    filter: 'blur(8px)' 
+                }}
+                />
             </div>
-            
-            {/* 3. Event Card */}
-            <motion.div 
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.2 }}
-              className={`bg-[#000d12]/80 border ${e.active ? 'border-[#00ffe150]' : 'border-[#00ffe110]'} p-6 rounded-2xl backdrop-blur-xl shadow-2xl transition-all group-hover:border-[#00ffe140]`}
-            >
-              <div className="flex justify-between items-start mb-4">
-                <span 
-                  className="px-5 py-1.5 rounded-lg text-[12px] font-black tracking-[0.25em] border-2 uppercase"
-                  style={{ borderColor: `${e.color}40`, color: e.color, backgroundColor: `${e.color}15` }}
-                >
-                  {e.s}
-                </span>
-                
-                <div className="flex gap-4 text-[11px] font-mono text-[#4a7a8a] tracking-widest font-black uppercase">
-                  <span>{e.t}</span>
-                  <span className="opacity-30">|</span>
-                  <span>{e.run}</span>
-                </div>
-              </div>
-              
-              <p className="text-[16px] text-white font-bold leading-relaxed tracking-wide">
-                {e.n}
-              </p>
-            </motion.div>
           </div>
-        ))}
+
+          {/* 2. Events List */}
+          <div className="flex justify-between items-start relative z-10 w-full">
+            {events.map((e, i) => (
+              <div 
+                key={i} 
+                className="flex flex-col items-center group shrink-0" 
+                style={{ width: '220px' }}
+              >
+                {/* Status Node */}
+                <div 
+                  className="relative w-[32px] h-[32px] rounded-full border-[6px] border-[#000507] z-20 transition-all duration-500 mb-10"
+                  style={{ 
+                    backgroundColor: e.color, 
+                    boxShadow: e.active 
+                      ? `0 0 40px ${e.color}, 0 0 20px ${e.color}` 
+                      : `0 0 15px ${e.color}30` 
+                  }}
+                >
+                  {e.active && (
+                    <div className="absolute inset-[-14px] rounded-full border-2 border-[#00ffe140] animate-ping" />
+                  )}
+                </div>
+                
+                {/* Event Details */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="text-center space-y-4 px-4"
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    {/* Increased Heading Size for the Status Badge */}
+                    <span 
+                      className="px-5 py-2 rounded-lg text-[14px] font-black tracking-[0.25em] border-2 uppercase transition-all"
+                      style={{ 
+                        borderColor: `${e.color}40`, 
+                        color: e.color, 
+                        backgroundColor: `${e.color}15` 
+                      }}
+                    >
+                      {e.s}
+                    </span>
+                    {/* Timestamp slightly decreased */}
+                    <span className="text-[12px] font-mono text-[#4a7a8a] font-bold tracking-wider">{e.t}</span>
+                  </div>
+                  
+                  {/* Description slightly decreased for cleaner UI */}
+                  <p className="text-[14px] text-white/90 font-medium leading-relaxed h-[44px] overflow-hidden group-hover:text-[#00ffe1] transition-colors">
+                    {e.n}
+                  </p>
+                  
+                  {/* Run Info slightly decreased */}
+                  <div className="text-[10px] font-mono text-[#4a7a8a]/50 uppercase tracking-[0.3em] font-black">
+                    {e.run}
+                  </div>
+                </motion.div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

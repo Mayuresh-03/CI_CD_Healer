@@ -129,8 +129,10 @@
 
 import os
 import json
+import traceback
 from sqlalchemy.orm import Session
 from app.db.models import Run, Fix
+from app.db.database import SessionLocal
 from app.services.git_services import clone_repo, create_branch, commit_and_push
 from app.services.repo_scanner import scan_repo
 from app.agents.agent_orchestrator import AgentOrchestrator
@@ -174,6 +176,11 @@ async def handle_fix_logic(team_name, background_tasks, db):
     """
     if team_name not in SCAN_REPORTS:
         return {"success": False, "error": f"No scan report found for {team_name}."}
+    
+    # Check for existing active runs
+    active_run = db.query(Run).filter(Run.status == "IN_PROGRESS", Run.repo_url.contains(team_name)).first()
+    if active_run:
+        return {"success": False, "error": "An agent is already working on this repository."}
 
     data = SCAN_REPORTS[team_name]
     
@@ -264,3 +271,137 @@ async def process_healing_task(run_id, data, db):
     final_report = scan_repo(local_path, payload["repo_url"])
     run.status = "PASSED" if final_report["total_errors"] == 0 else "FAILED"
     db.commit()
+
+# app/controllers/agent_controller.py
+
+# async def handle_orchestrator_logic(payload, run_id: int, db: Session):
+#     """
+#     Manages the full lifecycle: Fresh Clone -> Scan -> Multi-Agent Loop -> Result Generation.
+#     """
+    
+#     orchestrator = AgentOrchestrator(mistral_api_key=os.environ.get("MISTRAL_API_KEY"))
+    
+#     try:
+#         # 1. Fresh Clone
+        
+#         local_path = clone_repo(payload.repo_url)
+        
+#         # 2. Branching
+#         branch = create_branch(local_path, payload.team_name, payload.leader_name)
+        
+#         # Update Run with branch name
+#         run = db.query(Run).filter(Run.id == run_id).first()
+#         run.branch = branch
+#         db.commit()
+
+#         # 3. Define the log generator (Step 1 Scan)
+#         def get_fresh_logs():
+#             report = scan_repo(local_path, payload.repo_url)
+#             # Return only the first error to the analyzer for sequential fixing
+#             return report["errors"][0] if report["errors"] else None
+
+#         # 4. Run the Full Agent Orchestration
+#         # This will internally call Analyzer -> Fixer -> Debugger and Commit/Push
+#         summary_result = await orchestrator.run_full_agent(
+#             repo_path=local_path,
+#             logs_generator=get_fresh_logs,
+#             repo_url=payload.repo_url,
+#             team_name=payload.team_name,
+#             leader_name=payload.leader_name,
+#             branch_name=branch,
+#             github_token=payload.github_token,
+#             max_retries=10 # Higher retries for one-click full healing
+#         )
+
+#         # 5. Final DB Sync
+#         run.status = summary_result["status"]
+#         run.iterations = summary_result["iterations"]
+#         db.commit()
+
+#         # 6. Record individual fixes in the Fix table for the Progress Dashboard
+#         for fix in summary_result.get("fixes", []):
+#             clean_bug_type = fix["bug_type"].split('|')[0].strip()
+#             new_fix = Fix(
+#                 run_id=run_id,
+#                 file=fix["file"],
+#                 bug_type=clean_bug_type,
+#                 line=fix["line"],
+#                 status=fix["status"]
+#             )
+#             db.add(new_fix)
+#         db.commit()
+
+#     except Exception as e:
+#         print(f"[ORCHESTRATOR CRASH] {str(e)}")
+#         run = db.query(Run).filter(Run.id == run_id).first()
+#         run.status = "FAILED"
+#         db.commit()
+
+async def handle_orchestrator_logic(payload, run_id: int, _db_from_route): # Remove db from args
+    # 1. Create a FRESH session for the background task
+    db = SessionLocal()
+    
+    try:
+        print(f"🚀 Starting Orchestrator for Run {run_id}")
+        orchestrator = AgentOrchestrator(mistral_api_key=os.environ.get("MISTRAL_API_KEY"))
+        
+        print(f"DEBUG: Attempting to clone {payload.repo_url}")
+        local_path = clone_repo(payload.repo_url)
+        branch = create_branch(local_path, payload.team_name, payload.leader_name)
+        
+        # Update Run
+        run = db.query(Run).filter(Run.id == run_id).first()
+        run.branch = branch
+        db.commit()
+
+        # 2. Fix the Log Generator: Send the WHOLE errors list
+        def get_fresh_logs():
+            report = scan_repo(local_path, payload.repo_url)
+            # Send the list so the AnalyzerAgent can process it properly
+            return report["errors"] if report.get("errors") else []
+
+        # 3. Execution
+        summary_result = await orchestrator.run_full_agent(
+            repo_path=local_path,
+            logs_generator=get_fresh_logs,
+            repo_url=payload.repo_url,
+            team_name=payload.team_name,
+            leader_name=payload.leader_name,
+            branch_name=branch,
+            github_token=payload.github_token,
+            max_retries=20
+        )
+
+        # 4. Final Sync with Safety Checks
+        run = db.query(Run).filter(Run.id == run_id).first()
+        run.status = summary_result.get("status", "FAILED")
+        run.iterations = summary_result.get("iterations", 0)
+        
+        for fix in summary_result.get("fixes", []):
+            # Strip description for DB, keep for logic
+            clean_bug_type = str(fix.get("bug_type", "LOGIC")).split('|')[0].strip()
+            new_fix = Fix(
+                run_id=run_id,
+                file=fix["file"],
+                bug_type=clean_bug_type,
+                line=fix.get("line", 0),
+                status=fix["status"]
+            )
+            db.add(new_fix)
+            
+        db.commit()
+        print(f"✅ Run {run_id} completed: {run.status}")
+
+    except Exception as e:
+        db.rollback()
+        print(f"❌ [ORCHESTRATOR CRASH]: {str(e)}")
+
+        print("!!! BACKGROUND TASK CRITICAL ERROR !!!")
+        print(traceback.format_exc())
+        
+        run = db.query(Run).filter(Run.id == run_id).first()
+        if run:
+            run.status = "FAILED"
+            db.commit()
+    finally:
+        db.close() # Always close your background session

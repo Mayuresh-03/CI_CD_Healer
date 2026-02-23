@@ -1,138 +1,125 @@
 {
-    "repository": "https://github.com/SahilJ1305/test-cicd-healer.git",
-    "branch": "RIFT_ORGANIZER_OMKAR_AI_Fix",
-    "status": "FAILED",
-    "iterations": 5,
-    "time_taken": 87.3,
-    "total_fixes": 16,
-    "fixes": [
-        {
-            "file": "src/parser.py",
-            "bug_type": "IMPORT",
-            "line": 1,
-            "description": "ImportError: No module named 'pandas'",
-            "fix_hint": "Install 'pandas' or remove the import",
-            "status": "Fixed"
-        },
-        {
-            "file": "src/parser.py",
-            "bug_type": "IMPORT",
-            "line": 3,
-            "description": "ImportError: cannot import 'Stack' from 'collections'",
-            "fix_hint": "'Stack' does not exist in 'collections'",
-            "status": "Fixed"
-        },
-        {
-            "file": "src/utils.py",
-            "bug_type": "SYNTAX",
-            "line": 4,
-            "description": "SyntaxError: expected ':'",
-            "fix_hint": "Fix syntax at line 4: def add(a, b)      # missing colon (SYNTAX bug, line 4)",
-            "status": "Fixed"
-        },
-        {
-            "file": "src/database.py",
-            "bug_type": "SYNTAX",
-            "line": 3,
-            "description": "SyntaxError: expected an indented block after 'if' statement on line 2",
-            "fix_hint": "Fix syntax at line 3: return {\"id\": user_id, \"name\": \"John\"}  # bad indent \u2014 INDENTATION bug, line 3",
-            "status": "Fixed"
-        },
-        {
-            "file": "src/validator.py",
-            "bug_type": "SYNTAX",
-            "line": 1,
-            "description": "SyntaxError: expected ':'",
-            "fix_hint": "Fix syntax at line 1: def is_email(email)        # missing colon \u2014 SYNTAX bug, line 1",
-            "status": "Fixed"
-        },
-        {
-            "file": "src/formatter.py",
-            "bug_type": "TYPE_ERROR",
-            "line": 5,
-            "description": "TypeError: string + non-string variable 'price'",
-            "fix_hint": "Wrap 'price' with str() at line 5",
-            "status": "Fixed"
-        },
-        {
-            "file": "src/formatter.py",
-            "bug_type": "TYPE_ERROR",
-            "line": 2,
-            "description": "TypeError: string + non-string variable 'name'",
-            "fix_hint": "Wrap 'name' with str() at line 2",
-            "status": "Fixed"
-        },
-        {
-            "file": "src/parser.py",
-            "bug_type": "IMPORT",
-            "line": 1,
-            "description": "ImportError: No module named 'numpy'",
-            "fix_hint": "Install 'numpy' or remove the import",
-            "status": "Fixed"
-        },
-        {
-            "file": "src/parser.py",
-            "bug_type": "LINTING",
-            "line": 3,
-            "description": "F401: 'collections.deque' imported but unused",
-            "fix_hint": "Remove or use the unused import at line 3",
-            "status": "Fixed"
-        },
-        {
-            "file": "src/utils.py",
-            "bug_type": "LINTING",
-            "line": 1,
-            "description": "F401: 'os' imported but unused",
-            "fix_hint": "Remove or use the unused import at line 1",
-            "status": "Fixed"
-        },
-        {
-            "file": "src/utils.py",
-            "bug_type": "LINTING",
-            "line": 2,
-            "description": "F401: 'json' imported but unused",
-            "fix_hint": "Remove or use the unused import at line 2",
-            "status": "Fixed"
-        },
-        {
-            "file": "src/utils.py",
-            "bug_type": "LINTING",
-            "line": 11,
-            "description": "F841: local variable 'message' is assigned to but never used",
-            "fix_hint": "Remove or use the unused import at line 11",
-            "status": "Fixed"
-        },
-        {
-            "file": "src/database.py",
-            "bug_type": "LINTING",
-            "line": 7,
-            "description": "F841: local variable 'name' is assigned to but never used",
-            "fix_hint": "Remove or use the unused import at line 7",
-            "status": "Fixed"
-        },
-        {
-            "file": "src/parser.py",
-            "bug_type": "IMPORT",
-            "line": 1,
-            "description": "ImportError: No module named 'pandas'",
-            "fix_hint": "Install 'pandas' or remove the import",
-            "status": "Fixed"
-        },
-        {
-            "file": "src/parser.py",
-            "bug_type": "IMPORT",
-            "line": 1,
-            "description": "ImportError: No module named 'pandas'",
-            "fix_hint": "Install 'pandas' or remove the import",
-            "status": "Fixed"
-        },
-        {
-            "file": "src/parser.py",
-            "bug_type": "IMPORT",
-            "line": 1,
-            "description": "ImportError: No module named 'pandas'",
-            "fix_hint": "Install 'pandas' or remove the import",
-            "status": "Fixed"
-        }
-    ]
+  "repository": "https://github.com/SahilJ1305/test-cicd-healer.git",
+  "branch": "GALAXY4_RUGVED_AI_Fix",
+  "team_name": "GALAXY4",
+  "leader_name": "RUGVED",
+  "start_time": "2026-02-22T20:42:09.718887",
+  "end_time": "2026-02-22T20:42:59.449132",
+  "time_taken_seconds": 49.73,
+  "total_failures_detected": 14,
+  "total_fixes_applied": 5,
+  "ci_status": "PASSED",
+  "score_breakdown": {
+    "base_score": 100,
+    "speed_bonus": 10,
+    "efficiency_penalty": 0,
+    "final_score": 110,
+    "commit_count": 5,
+    "under_5_minutes": true
+  },
+  "fixes": [
+    {
+      "file": "src/utils.py",
+      "bug_type": "SYNTAX",
+      "line_number": 4,
+      "commit_message": "[AI-AGENT] Fix SYNTAX in src/utils.py line 4",
+      "status": "Fixed"
+    },
+    {
+      "file": "src/database.py",
+      "bug_type": "SYNTAX",
+      "line_number": 3,
+      "commit_message": "[AI-AGENT] Fix SYNTAX in src/database.py line 3",
+      "status": "Fixed"
+    },
+    {
+      "file": "src/validator.py",
+      "bug_type": "SYNTAX",
+      "line_number": 1,
+      "commit_message": "[AI-AGENT] Fix SYNTAX in src/validator.py line 1",
+      "status": "Fixed"
+    },
+    {
+      "file": "src/formatter.py",
+      "bug_type": "TYPE_ERROR",
+      "line_number": 5,
+      "commit_message": "[AI-AGENT] Fix TYPE_ERROR in src/formatter.py line 5",
+      "status": "Fixed"
+    },
+    {
+      "file": "src/calculator.py",
+      "bug_type": "LOGIC",
+      "line_number": 4,
+      "commit_message": "[AI-AGENT] Fix LOGIC in src/calculator.py line 4",
+      "status": "Fixed"
+    },
+    {
+      "file": "src/utils.py",
+      "bug_type": "LINTING",
+      "line_number": 1,
+      "commit_message": "[AI-AGENT] Fix LINTING in src/utils.py line 1",
+      "status": "Skipped (No Change)"
+    },
+    {
+      "file": "src/utils.py",
+      "bug_type": "LINTING",
+      "line_number": 1,
+      "commit_message": "[AI-AGENT] Fix LINTING in src/utils.py line 1",
+      "status": "Skipped (No Change)"
+    },
+    {
+      "file": "src/database.py",
+      "bug_type": "LINTING",
+      "line_number": 7,
+      "commit_message": "[AI-AGENT] Fix LINTING in src/database.py line 7",
+      "status": "Skipped (No Change)"
+    },
+    {
+      "file": "src/formatter.py",
+      "bug_type": "TYPE_ERROR",
+      "line_number": 2,
+      "commit_message": "[AI-AGENT] Fix TYPE_ERROR in src/formatter.py line 2",
+      "status": "Skipped (No Change)"
+    },
+    {
+      "file": "src/utils.py",
+      "bug_type": "LINTING",
+      "line_number": 1,
+      "commit_message": "[AI-AGENT] Fix LINTING in src/utils.py line 1",
+      "status": "Skipped (No Change)"
+    },
+    {
+      "file": "src/database.py",
+      "bug_type": "LINTING",
+      "line_number": 7,
+      "commit_message": "[AI-AGENT] Fix LINTING in src/database.py line 7",
+      "status": "Skipped (No Change)"
+    },
+    {
+      "file": "src/formatter.py",
+      "bug_type": "TYPE_ERROR",
+      "line_number": 2,
+      "commit_message": "[AI-AGENT] Fix TYPE_ERROR in src/formatter.py line 2",
+      "status": "Skipped (No Change)"
+    },
+    {
+      "file": "src/database.py",
+      "bug_type": "LINTING",
+      "line_number": 7,
+      "commit_message": "[AI-AGENT] Fix LINTING in src/database.py line 7",
+      "status": "Skipped (No Change)"
+    },
+    {
+      "file": "src/formatter.py",
+      "bug_type": "TYPE_ERROR",
+      "line_number": 2,
+      "commit_message": "[AI-AGENT] Fix TYPE_ERROR in src/formatter.py line 2",
+      "status": "Skipped (No Change)"
+    }
+  ],
+  "ci_history": {
+    "iterations_used": 15,
+    "max_retries": 5,
+    "final_status": "PASSED"
+  }
 }
