@@ -38,7 +38,7 @@ Validator Agent: Executes the code in a sandboxed Docker environment to verify t
 
 🛠️ Tech Stack
 
-Frontend: React (Functional Components + Hooks), Tailwind CSS, Lucide Icons .
+Frontend: React JS(Functional Components + Hooks), Tailwind CSS, Lucide Icons .
 
 Backend: FastAPI (Python), Multi-Agent Orchestration .
 
